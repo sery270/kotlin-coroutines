@@ -44,7 +44,9 @@ fun getNetworkService() = service
  */
 interface MainNetwork {
     @GET("next_title.json")
-    fun fetchNextTitle(): Call<String>
+    suspend fun fetchNextTitle(): String
+    // If you still wanted to provide access to Retrofit's full Result,
+    // you can return Result<String> instead of String from the suspend function.
 }
 
 

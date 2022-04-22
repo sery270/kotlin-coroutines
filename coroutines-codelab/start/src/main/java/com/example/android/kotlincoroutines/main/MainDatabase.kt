@@ -39,8 +39,11 @@ data class Title constructor(val title: String, @PrimaryKey val id: Int = 0)
  */
 @Dao
 interface TitleDao {
+    // Room will make your query main-safe and
+    // execute it on a background thread automatically
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertTitle(title: Title)
+    suspend fun insertTitle(title: Title)
 
     @get:Query("select * from Title where id = 0")
     val titleLiveData: LiveData<Title?>
