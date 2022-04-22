@@ -19,7 +19,8 @@ package com.example.android.kotlincoroutines.main
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import com.example.android.kotlincoroutines.util.BACKGROUND
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * TitleRepository provides an interface to fetch a title or request a new one be generated.
@@ -44,8 +45,31 @@ class TitleRepository(val network: MainNetwork, val titleDao: TitleDao) {
 
 
     suspend fun refreshTitle() {
-        // TODO: Refresh from network and write to database
-        delay(500)
+        // interact with *blocking* network and IO calls from a coroutine
+        // (IO dispatcher의) 스레드를 아무튼 blocking 하긴 한다.
+        // -> 하지만, 아래 withContext 블럭이 완료 될 때까지, suspend 함수인 refreshTitle의 caller 코루틴은 일시 중단 (suspend)된다.
+        // 즉, caller 코루틴을 실행 중인 스레드에게 (아마 main dispatcher의 메인 스레드에게) CPU 제어권이 바로 리턴되어 메인 스레드가 다른 작업을 할 수 있게한다.
+        withContext(Dispatchers.IO) {
+            // withContext는 caller Dispatcher에게 결과 값을 리턴 -> 콜백 함수를 호출하지 않아도 됨 !
+            // 코루틴을 사용하여, caller가 콜백을 넘겨주지 않아도 됨 !
+            val result = try {
+                // Make network request using a
+                // *blocking call
+                network.fetchNextTitle().execute()
+            } catch (cause: Throwable) {
+                // If the network throws an exception, inform the caller
+                throw TitleRefreshError("Unable to refresh title", cause)
+            }
+
+            if (result.isSuccessful) {
+                // Save it to database using a
+                // *blocking call*
+                titleDao.insertTitle(Title(result.body()!!))
+            } else {
+                // If it's not successful, inform the callback of the error
+                throw TitleRefreshError("Unable to refresh title", null)
+            }
+        }
     }
 
     /**
