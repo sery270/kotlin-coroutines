@@ -1,5 +1,3 @@
-## 20220422
-
 ## Coroutines in Kotlin
 
 ### Main-Safety
@@ -31,6 +29,42 @@
 - `async` 와 `await`으로 사용되는 패턴들은 Coroutine을 베이스로 한다.
     - swift, javascript, etc ,,,
 
+### CoroutineScope
+
+- 모든 코루틴은 **CoroutineScope 안에서 실행된다.**
+- CoroutineScope내에선 sleep 대신 suspend 함수인 delay을 사용한다.
+- 해당 Job이 취소되면, 해당 Scope 및 Job의 모든 코루틴이 취소된다.
+
+### ViewModelScope
+
+- ViewModelScope은 사전에 정의된 CoroutineScope이다. 
+- onCleared 호출 시 자동으로 취소된다.
+- ViewModelScope는 기본적으로`Dispatchers.Main.immediate` 를 사용한다.
+
+### With Retrofit
+
+- 내부적으로, Retrofit은 새 Call 개체를 만들고 요청을 비동기식으로 보내기 위해 enqueue를 호출한다.
+- Suspend function support requires Retrofit 2.6.0 or higher.
+- Retrofit은 해당 요청함수를 **main-safety**하게 만든다.
+  - suspend 함수 내에서 Retrofit은 백그라운드 스레드에서 네트워크 요청을 실행하고, 호출이 완료되면 코루틴을 재개한다. 
+  - 따라서 **main-safe하다.**
+- Retrofit은 사용자 지정 디스패처를 사용하며 Dispatchers.IO를 사용하지 않는다.
+
+### With Room
+
+- Room은 쿼리를 **main-safety**하게 만들고, 자동으로 백그라운드 스레드에서 쿼리를 실행한다.
+- Room은 구성된 기본 쿼리 및 [transaction](https://developer.android.com/reference/androidx/room/RoomDatabase.Builder.html?hl=ko#setTransactionExecutor(java.util.concurrent.Executor)) `Executor`를 사용하여 코루틴을 실행한다.
+- Room은 사용자 지정 디스패처를 사용하며 Dispatchers.IO를 사용하지 않는다.
+
+### Coroutines Exceptions
+
+- Callback의 단점 중 하나 였던 부분을 해결한다. (일부 언어 기능을 지원하지 못한다. Exception 처리)
+    - rely on the built-in language support for error handling instead of building custom error handling for every callback.
+- 코루틴에서 에러가 발생하면, caller에게 오류 던지기 때문에, 일반 함수처럼 try/catch로 예외처리를 할 수 있다.
+- catch로 못잡은 에러들은 JVM에서 스레드의 포착되지 않은 예외 처리기로 전송된다.
+    - CoroutineExceptionHandler를 제공하여 이 동작을 사용자 정의할 수 있다.
+- 만약에 코루틴에서 에러가 발생하면, 코루틴은 기본적으로 부모 코루틴을 취소한다. 다른 자식들에게 전파되어 취소된다. 
+    ![Untitled](https://user-images.githubusercontent.com/59532818/164750285-4bd6ddfa-685c-43f2-97d7-3d5276b5f341.png)
 ---
 
 ## dependencies
