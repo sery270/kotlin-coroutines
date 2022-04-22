@@ -19,8 +19,11 @@ package com.example.android.kotlincoroutines.main
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.android.kotlincoroutines.util.BACKGROUND
 import com.example.android.kotlincoroutines.util.singleArgViewModelFactory
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * MainViewModel designed to store and manage UI-related data in a lifecycle conscious way. This
@@ -101,12 +104,37 @@ class MainViewModel(private val repository: TitleRepository) : ViewModel() {
      * Wait one second then update the tap count.
      */
     private fun updateTaps() {
-        // TODO: Convert updateTaps to use coroutines
-        tapCount++
-        BACKGROUND.submit {
-            Thread.sleep(1_000)
-            _taps.postValue("${tapCount} taps")
+
+        // 아래 코드와의 차이점
+        // onCleared 호출 시 자동으로 취소됨
+        // 해당 Job이 취소되면, 해당 Scope,Job의 모든 코루틴이 취소된다.
+        // viewModelScope는 기본적으로 Dispatchers.Main.immediate 를 사용한다.
+        // 즉, 해당 코루틴은 메인 스레드에서 실행된다. (아래 코드는 BACKGROUND 에서 실행됨 !)
+        // sleep 대신 suspend 함수인 delay을 사용한다.
+
+        // launch a coroutine in viewModelScope
+        viewModelScope.launch {
+            tapCount++
+            // suspend this coroutine for one second
+            // delay 는 메인스레드에서 실행되더라도, 스레드를 blocking 하지 않는다.
+            // 왼쪽의 -> 아이콘은 suspend 함수인 것을 의미한다.
+            delay(1_000)
+            // resume in the main dispatcher
+            // _snackbar.value can be called directly from main thread
+            _taps.postValue("$tapCount taps")
         }
+
+
+//        tapCount++
+//        BACKGROUND.submit {
+//            Thread.sleep(1_000)
+//            _taps.postValue("${tapCount} taps")
+//        }
+
+        // 아래와 같이 BACKGROUND.submit 를 주석처리하면, 스피너가 동작하지 않음
+        // 이유 : 메인 스레드가 sleep 하기 때문에, UI가 freeze
+//        Thread.sleep(1_000)
+//        _taps.postValue("${tapCount} taps")
     }
 
     /**
