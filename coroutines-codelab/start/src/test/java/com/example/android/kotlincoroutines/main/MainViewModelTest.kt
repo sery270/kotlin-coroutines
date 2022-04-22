@@ -20,13 +20,29 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.android.kotlincoroutines.fakes.MainNetworkFake
 import com.example.android.kotlincoroutines.fakes.TitleDaoFake
 import com.example.android.kotlincoroutines.main.utils.MainCoroutineScopeRule
+import com.example.android.kotlincoroutines.main.utils.getValueForTest
+import com.google.common.truth.Truth
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
 class MainViewModelTest {
+
+    // MainCoroutineScopeRule (custom rule)
+    // kotlinx-coroutines-test의 TestCoroutineDispatcher를 사용하도록
+    // Dispatchers.Main을 구성한다.
+
+    // 테스트를 위해 virtual-clock 향상
+    // 단위 테스트에서 Dispatchers.Main 를 사용하게 함
+
+    // MainCoroutineScopeRule lets you pause, resume, or control the execution of coroutines
+    // that are launched on the Dispatchers.Main.
     @get:Rule
     val coroutineScope = MainCoroutineScopeRule()
+
+    // InstantTaskExecutorRule (JUnit rule)
+    // 각 작업을 동기적으로 실행하도록
+    // LiveData 를 구성한다.
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
@@ -43,6 +59,9 @@ class MainViewModelTest {
 
     @Test
     fun whenMainClicked_updatesTaps() {
-        // TODO: Write this
+        subject.onMainViewClicked()
+        Truth.assertThat(subject.taps.getValueForTest()).isEqualTo("0 taps")
+        coroutineScope.advanceTimeBy(1000)
+        Truth.assertThat(subject.taps.getValueForTest()).isEqualTo("1 taps")
     }
 }
