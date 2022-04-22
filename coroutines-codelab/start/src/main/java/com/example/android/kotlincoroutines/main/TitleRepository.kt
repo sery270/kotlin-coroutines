@@ -19,6 +19,7 @@ package com.example.android.kotlincoroutines.main
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import com.example.android.kotlincoroutines.util.BACKGROUND
+import kotlinx.coroutines.delay
 
 /**
  * TitleRepository provides an interface to fetch a title or request a new one be generated.
@@ -42,7 +43,10 @@ class TitleRepository(val network: MainNetwork, val titleDao: TitleDao) {
     val title: LiveData<String?> = titleDao.titleLiveData.map { it?.title }
 
 
-    // TODO: Add coroutines-based `fun refreshTitle` here
+    suspend fun refreshTitle() {
+        // TODO: Refresh from network and write to database
+        delay(500)
+    }
 
     /**
      * Refresh the current title and save the results to the offline cache.
@@ -64,12 +68,14 @@ class TitleRepository(val network: MainNetwork, val titleDao: TitleDao) {
                 } else {
                     // If it's not successful, inform the callback of the error
                     titleRefreshCallback.onError(
-                            TitleRefreshError("Unable to refresh title", null))
+                        TitleRefreshError("Unable to refresh title", null)
+                    )
                 }
             } catch (cause: Throwable) {
                 // If anything throws an exception, inform the caller
                 titleRefreshCallback.onError(
-                        TitleRefreshError("Unable to refresh title", cause))
+                    TitleRefreshError("Unable to refresh title", cause)
+                )
             }
         }
     }
@@ -83,6 +89,9 @@ class TitleRepository(val network: MainNetwork, val titleDao: TitleDao) {
  */
 class TitleRefreshError(message: String, cause: Throwable?) : Throwable(message, cause)
 
+
+// In TitleRepository.kt the method refreshTitleWithCallbacks is implemented with a callback
+// to communicate the loading and error state to the caller.
 interface TitleRefreshCallback {
     fun onCompleted()
     fun onError(cause: Throwable)
