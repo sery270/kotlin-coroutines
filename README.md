@@ -27,7 +27,7 @@
 ### Coroutines by another name
 
 - `async` 와 `await`으로 사용되는 패턴들은 Coroutine을 베이스로 한다.
-    - swift, javascript, etc ,,,
+    - swift, javascript, etc
 
 ### CoroutineScope
 
@@ -65,6 +65,75 @@
     - CoroutineExceptionHandler를 제공하여 이 동작을 사용자 정의할 수 있다.
 - 만약에 코루틴에서 에러가 발생하면, 코루틴은 기본적으로 부모 코루틴을 취소한다. 다른 자식들에게 전파되어 취소된다. 
     ![Untitled](https://user-images.githubusercontent.com/59532818/164750285-4bd6ddfa-685c-43f2-97d7-3d5276b5f341.png)
+
+
+
+### suspend lambda (****higher order functions)****
+
+- 람다를 적절히 사용하면, 중복 코드 제거하고 캡슐화하는데에 도움을 줄 수 있다.
+    
+    ```kotlin
+    // MainViewModel.kt
+    
+    private fun launchDataLoad(block: suspend () -> Unit): Job {
+       return viewModelScope.launch {
+           try {
+               _spinner.value = true
+               block()
+           } catch (error: TitleRefreshError) {
+               _snackBar.value = error.message
+           } finally {
+               _spinner.value = false
+           }
+       }
+    }
+    
+    fun refreshTitle() {
+       launchDataLoad {
+           repository.refreshTitle()
+       }
+    }
+    ```
+    
+- suspend 함수도 람수로 표현할 수 있다. 
+    - To make a suspend lambda, start with the `suspend` keyword.
+        
+        ```kotlin
+        // suspend lambda
+        
+        block: suspend () -> Unit
+        ```
+        
+
+### **WorkManager**
+
+- WorkManager는 지연 가능한 백그라운드 작업을 위한 호환 가능하고 유연하며 간단한 라이브러리이다.
+- WorkManager는 [Android Jetpack](http://d.android.com/jetpack)이고, AAC이며, **Opportunistic execution**와 **Guaranteed execution**이 필요한 백그라운드 작업을 위한 것이다.
+    - **Opportunistic execution** → WorkManager가 가능한 한 빨리 백그라운드 작업을 수행
+    - **Guaranteed execution** → 앱에서 벗어나 탐색하더라도 다양한 상황에서 작업을 시작할 수 있는 로직을 처리
+- WorkManager가 하면 좋은 작업들
+    - Uploading logs
+    - Applying filters to images and saving the image
+    - Periodically syncing local data with the network
+
+### **CoroutineWorker**
+
+- `CoroutineWorker.doWork()` is a suspending function
+- `CoroutineWorker`는 기본적으로 `Dispatchers.Default` 를 사용한다. 
+- `CoroutineWorker`는 `ListenableWorker`을 상속 받는다.
+- WorkManager v2.1 부터 `ListenableWorker`을 더 쉽게 테스트할 수 있는 API를 제공한다. → [TestListenableWorkerBuilder](https://developer.android.com/reference/androidx/work/testing/TestListenableWorkerBuilder)
+
+### Tips
+
+- you might declare one(Scopes) in a RecyclerView Adapter to do DiffUtil operations.
+
+### 🚧 Testing Coroutine 🚧 
+
+- 추후 보강 예정,,, 어렵다...
+- [https://tourspace.tistory.com/266](https://tourspace.tistory.com/266)
+- `MainCoroutineScopeRule`
+- `InstantTaskExecutorRule`
+  
 ---
 
 ## dependencies
