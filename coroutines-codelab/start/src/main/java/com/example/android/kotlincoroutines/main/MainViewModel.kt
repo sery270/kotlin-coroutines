@@ -21,6 +21,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.android.kotlincoroutines.util.singleArgViewModelFactory
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -147,24 +148,46 @@ class MainViewModel(private val repository: TitleRepository) : ViewModel() {
      * Refresh the title, showing a loading spinner while it refreshes and errors via snackbar.
      */
     fun refreshTitle() {
-        // when the user moves away from this screen the work started by this coroutine will automatically be cancelled
-        viewModelScope.launch {
+        launchDataLoad {
+            repository.refreshTitle()
+        }
+    }
+//    fun refreshTitle() {
+//        // when the user moves away from this screen the work started by this coroutine will automatically be cancelled
+//        viewModelScope.launch {
+//            try {
+//                _spinner.value = true
+//                repository.refreshTitle()
+//                // rely on the built-in language support for error handling instead of building custom error handling for every callback.
+//                // Callback의 단점 중 하나 였던 부분 (일부 언어 기능을 지원하지 못한다. Exception 처리)
+//            } catch (error: TitleRefreshError) {
+//                    // 일반 함수처럼 try/catch로 예외처리를 할 수 있다.
+//                    // 만약에 코루틴에서 에러가 발생하면, 코루틴은 기본적으로 부모 코루틴을 취소한다. 다른 자식들에게 전파됨
+//                _snackBar.value = error.message
+//            } finally {
+//                _spinner.value = false
+//            }
+//
+//        // By default, uncaught exceptions (catch로 못잡은 에러들)
+//        // JVM에서 스레드의 포착되지 않은 예외 처리기로 전송된다.
+//        // CoroutineExceptionHandler를 제공하여 이 동작을 사용자 정의할 수 있다.
+//        }
+//    }
+
+    /**
+     * abstracting the logic around showing a loading spinner and showing errors
+     */
+    // 람다를 적절히 사용하면, 중복 코드 제거하고 캡슐화하는데에 도움을 줄 수 있다.
+    private fun launchDataLoad(block: suspend () -> Unit): Job { // suspend 함수도 람수로 표현할 수 있다.
+        return viewModelScope.launch {
             try {
                 _spinner.value = true
-                repository.refreshTitle()
-                // rely on the built-in language support for error handling instead of building custom error handling for every callback.
-                // Callback의 단점 중 하나 였던 부분 (일부 언어 기능을 지원하지 못한다. Exception 처리)
+                block()
             } catch (error: TitleRefreshError) {
-                    // 일반 함수처럼 try/catch로 예외처리를 할 수 있다.
-                    // 만약에 코루틴에서 에러가 발생하면, 코루틴은 기본적으로 부모 코루틴을 취소한다. 다른 자식들에게 전파됨
                 _snackBar.value = error.message
             } finally {
                 _spinner.value = false
             }
-
-        // By default, uncaught exceptions (catch로 못잡은 에러들)
-        // JVM에서 스레드의 포착되지 않은 예외 처리기로 전송된다.
-        // CoroutineExceptionHandler를 제공하여 이 동작을 사용자 정의할 수 있다.
         }
     }
 }
